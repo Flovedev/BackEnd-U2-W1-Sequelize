@@ -17,6 +17,9 @@ productsRouter.get("/", async (req, res, next) => {
       query.category = { [Op.like]: `%${req.query.category}%` };
     const products = await ProductsModel.findAndCountAll({
       where: { ...query },
+      //   limit: 2,
+      //   offset: 1,
+      order: [["category", "ASC"]],
     });
     res.send(products);
   } catch (error) {
