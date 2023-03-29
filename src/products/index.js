@@ -7,7 +7,17 @@ const productsRouter = Express.Router();
 
 productsRouter.get("/", async (req, res, next) => {
   try {
-    const products = await ProductsModel.findAll();
+    const query = {};
+    if (req.query.name) query.name = { [Op.iLike]: `%${req.query.name}%` };
+    if (req.query.description)
+      query.description = { [Op.iLike]: `%${req.query.description}%` };
+    if (req.query.minPrice && req.query.maxPrice)
+      query.price = { [Op.between]: [req.query.minPrice, req.query.maxPrice] };
+    if (req.query.category)
+      query.category = { [Op.like]: `%${req.query.category}%` };
+    const products = await ProductsModel.findAndCountAll({
+      where: { ...query },
+    });
     res.send(products);
   } catch (error) {
     next(error);
