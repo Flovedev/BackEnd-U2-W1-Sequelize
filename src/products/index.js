@@ -11,22 +11,34 @@ const productsRouter = Express.Router();
 
 productsRouter.get("/", async (req, res, next) => {
   try {
-    // const query = {};
-    // if (req.query.name) query.name = { [Op.iLike]: `%${req.query.name}%` };
-    // if (req.query.description)
-    //   query.description = { [Op.iLike]: `%${req.query.description}%` };
-    // if (req.query.minPrice && req.query.maxPrice)
-    //   query.price = { [Op.between]: [req.query.minPrice, req.query.maxPrice] };
-    // if (req.query.category)
+    const query = {};
+    let order = [];
+    const { name, description, minPrice, maxPrice, sort } = req.query;
+    const limit =
+      req.query.limit <= 100 && req.query.limit >= 10 ? req.query.limit : 10;
+    const offset = req.query.offset ? req.query.offset : 0;
+
+    if (sort) {
+      order = [
+        [
+          sort.charAt(0) === "-" ? sort.substring(1) : sort,
+          sort.charAt(0) === "-" ? "DESC" : "ASC",
+        ],
+      ];
+    }
+    if (name) query.name = { [Op.iLike]: `%${req.query.name}%` };
+    if (description)
+      query.description = { [Op.iLike]: `%${req.query.description}%` };
+    if (minPrice && maxPrice)
+      query.price = { [Op.between]: [req.query.minPrice, req.query.maxPrice] };
+    // if (category)
     //   query.category = { [Op.like]: `%${req.query.category}%` };
-    // const products = await ProductsModel.findAndCountAll({
-    //   where: { ...query },
-    //     limit: 2,
-    //     offset: 1,
-    //   order: [["name", "ASC"]],
-    // });
-    const products = await ProductsModel.findAll({
-      // attributes: ["name", "description"],
+
+    const { count, rows } = await ProductsModel.findAndCountAll({
+      where: query,
+      limit,
+      offset,
+      order,
       include: [
         { model: UsersModel, attributes: ["name", "surname"] },
         { model: ReviewsModel, attributes: ["content"] },
@@ -37,7 +49,34 @@ productsRouter.get("/", async (req, res, next) => {
         },
       ],
     });
-    res.send(products);
+
+    const previousOffset = parseInt(offset) - parseInt(limit);
+
+    const nextOffset = parseInt(offset) + parseInt(limit);
+
+    const response = {
+      data: rows,
+      paging: {
+        offset: offset,
+        limit: limit,
+        total: count,
+        next:
+          nextOffset <= count
+            ? `${process.env.BE_URL}/products?limit=${limit}&offset=${nextOffset}`
+            : null,
+        previous:
+          previousOffset >= 0
+            ? `${process.env.BE_URL}/products?limit=${limit}&offset=${previousOffset}`
+            : null,
+      },
+    };
+
+    res.send({
+      total: count,
+      pagination: { next: response.next, previous: response.previous },
+      totalPages: Math.ceil(count / limit),
+      products: rows,
+    });
   } catch (error) {
     next(error);
   }
@@ -103,7 +142,7 @@ productsRouter.delete("/:id", async (req, res, next) => {
       next(createHttpError(404, `Product with Id ${req.params.id} not found.`));
     }
   } catch (error) {
-    next(createHttpError(404, `Product with Id ${req.params.id} not found.`));
+    next(error);
   }
 });
 
