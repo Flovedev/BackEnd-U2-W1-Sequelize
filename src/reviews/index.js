@@ -8,8 +8,19 @@ const reviewsRouter = Express.Router();
 
 reviewsRouter.post("/:productId/reviews", async (req, res, next) => {
   try {
+    const product = await ProductsModel.findByPk(req.params.productId);
+    if (!product) {
+      next(
+        createHttpError(
+          404,
+          `Product with Id ${req.params.productId} not found.`
+        )
+      );
+    }
+
     const { reviewId } = await ReviewsModel.create({
       content: req.body.content,
+      userId: req.body.userId,
       productId: req.params.productId,
     });
     res.status(201).send({ reviewId });

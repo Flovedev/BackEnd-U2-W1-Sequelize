@@ -73,7 +73,7 @@ productsRouter.get("/", async (req, res, next) => {
 
     res.send({
       total: count,
-      pagination: { next: response.next, previous: response.previous },
+      pages: { next: response.next, previous: response.previous },
       totalPages: Math.ceil(count / limit),
       products: rows,
     });
