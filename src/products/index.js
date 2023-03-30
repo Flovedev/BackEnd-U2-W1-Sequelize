@@ -55,7 +55,7 @@ productsRouter.put("/:id", async (req, res, next) => {
   try {
     const [numberOfUpdatedRows, updatedRecords] = await ProductsModel.update(
       req.body,
-      { where: { id: req.params.id }, returning: true }
+      { where: { productId: req.params.id }, returning: true }
     );
     if (numberOfUpdatedRows === 1) {
       res.send(updatedRecords);
@@ -70,7 +70,7 @@ productsRouter.put("/:id", async (req, res, next) => {
 productsRouter.delete("/:id", async (req, res, next) => {
   try {
     const numberOfDeletedRows = await ProductsModel.destroy({
-      where: { id: req.params.id },
+      where: { productId: req.params.id },
     });
     if (numberOfDeletedRows === 1) {
       res.status(204).send();
