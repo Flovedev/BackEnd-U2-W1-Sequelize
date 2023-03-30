@@ -1,25 +1,41 @@
 import Express from "express";
 import createHttpError from "http-errors";
 import { Op } from "sequelize";
+import CategoriesModel from "../categories/model.js";
+import ReviewsModel from "../reviews/model.js";
+import UsersModel from "../users/model.js";
 import ProductsModel from "./model.js";
+import ProductsCategoriesModel from "./productsCategoriesModel.js";
 
 const productsRouter = Express.Router();
 
 productsRouter.get("/", async (req, res, next) => {
   try {
-    const query = {};
-    if (req.query.name) query.name = { [Op.iLike]: `%${req.query.name}%` };
-    if (req.query.description)
-      query.description = { [Op.iLike]: `%${req.query.description}%` };
-    if (req.query.minPrice && req.query.maxPrice)
-      query.price = { [Op.between]: [req.query.minPrice, req.query.maxPrice] };
-    if (req.query.category)
-      query.category = { [Op.like]: `%${req.query.category}%` };
-    const products = await ProductsModel.findAndCountAll({
-      where: { ...query },
-      //   limit: 2,
-      //   offset: 1,
-      order: [["category", "ASC"]],
+    // const query = {};
+    // if (req.query.name) query.name = { [Op.iLike]: `%${req.query.name}%` };
+    // if (req.query.description)
+    //   query.description = { [Op.iLike]: `%${req.query.description}%` };
+    // if (req.query.minPrice && req.query.maxPrice)
+    //   query.price = { [Op.between]: [req.query.minPrice, req.query.maxPrice] };
+    // if (req.query.category)
+    //   query.category = { [Op.like]: `%${req.query.category}%` };
+    // const products = await ProductsModel.findAndCountAll({
+    //   where: { ...query },
+    //     limit: 2,
+    //     offset: 1,
+    //   order: [["name", "ASC"]],
+    // });
+    const products = await ProductsModel.findAll({
+      // attributes: ["name", "description"],
+      include: [
+        { model: UsersModel, attributes: ["name", "surname"] },
+        { model: ReviewsModel, attributes: ["content"] },
+        {
+          model: CategoriesModel,
+          attributes: ["name"],
+          through: { attributes: [] },
+        },
+      ],
     });
     res.send(products);
   } catch (error) {
@@ -44,8 +60,17 @@ productsRouter.get("/:id", async (req, res, next) => {
 
 productsRouter.post("/", async (req, res, next) => {
   try {
-    const { id } = await ProductsModel.create(req.body);
-    res.status(201).send({ id });
+    const { productId } = await ProductsModel.create(req.body);
+
+    if (req.body.categories) {
+      await ProductsCategoriesModel.bulkCreate(
+        req.body.categories.map((category) => {
+          return { productId: productId, categoryId: category };
+        })
+      );
+    }
+
+    res.status(201).send({ productId });
   } catch (error) {
     next(error);
   }

@@ -19,7 +19,7 @@ server.use(cors());
 server.use(Express.json());
 
 server.use("/products", productsRouter);
-server.use("/reviews", reviewsRouter);
+server.use("/products", reviewsRouter);
 server.use("/users", usersRouter);
 server.use("/categories", categoriesRouter);
 
